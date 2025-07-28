@@ -7,6 +7,7 @@ import os
 from shapely.geometry import Point
 import logging
 from flask_cors import CORS
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -20,69 +21,66 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
-logger = logger.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
+os.makedirs("static", exist_ok=True)
+os.makedirs("logs",exist_ok="True")
 
-@app.route('/', method =["GET"])
-def index(): 
-    return render.template("index.html")
+#Load Model
+try:
+    with open("model.pkl","rb") as f:
+        model = pickle.load(f)
+    logger.info("Model loaded successfully")
+except FileNotFoundError:
+    logger.error("Model file not found. Please ensure model.pkl exists.")
+    model = None
+except Exception as e:
+    logger.error(f"Error loading model: {e}")
+    model = None
 
-def load_model():
-    with open(r"Food-Access-AI\backend\notebooks\model.pkl","rb") as f:
-        return pickle.load(f)
+#Load Data
+try:
+    df = pd.read_csv("Food-Access-AI\Data\FoodAccessResearchAtlasData.csv")
+    gdf = pd.read_file("Food-Access-AI\Data\cb_2024_us_tract_500k.zip")
 
-df_model = pd.read_csv(r"Food-Access-AI\backend\Data\FoodAccessResearchAtlasData.csv")
+    if "ID" not in df.columns:
+        logger.error("ID column not found in CSV data")
+    else:
+        gdf = gdf.merge(df, left_on="GEOID", right_on="ID", how="left")
+    
+    logger.info(f"Data loaded successfully. Shape: {gdf.shape}")
+except FileNotFoundError as e:
+    logging.error(f"Data not found: {e}")
+    gdf = None
+except Exception as e:
+    logging.error(f"Error loading data: {e}")
+    gdf = None
 
-def load_geodata():
-    gdf = gpd.read_file(r"Food-Access-AI\backend\Data\cb_2024_us_tract_500k.zip")
-    gdf["ID"] = df_model["ID"]
-    return gdf
-
-model = load_model()
-
-gdf = load_geodata()
-county_gdf = pd.read_csv(r'Food-Access-AI\backend\Data\national_county.txt', header = None, dtype=str, names = ["STATE", "STATEFP", "COUNTYFP", "COUNTY_NAME","CLASSFP"])
-
-gdf = gdf.merge(county_gdf[["STATEFP","COUNTYFP","COUNTY_NAME"]], on=["STATEFP","COUNTYFP"],how="left")
+@app.route("/")
+def index():
+    #Main Page
+    return render_template('index.html')
 
 @app.route('/predict', methods = ["POST"])
 def predict():
-    data = request.json
-    state = data.get("state")
-    county = data.get("county")
+    #Make predictions for food desert
+    try:
+        if model is None:
+            return jsonify({"error:": "Model not loaded. Please check server configuration."}), 500
+        
+        if gdf is None:
+            return jsonify({"error": "Geographic data not loaded"}), 500
+        
+        data = request.json
+        if not data:
+            return jsonify({"error": "No data provided."}), 400
+        
+        state = data.get("state", "").strip()
+        county = data.get("county", "").strip()
 
-    # Subset to user’s county
-    sub_gdf = gdf[(gdf["STATE_NAME"] == state) & (gdf["COUNTY_NAME"] == county)]
+        if not state or not county:
+            return jsonify({"error": "Both state and county are required"}), 400
+        
+        logger.info(f"Processing request for {county}, {state}")
 
-    # Make prediction
-    feature_cols = ['Urban','PovertyRate','MedianFamilyIncome','lapophalf','lapophalfshare',
-                    'lalowihalf','lalowihalfshare','lakidshalfshare','laseniorshalf',
-                    'laseniorshalfshare','lawhitehalfshare','lahunvhalfshare','lasnaphalf','lasnaphalfshare']
-    
-    sub_gdf['predictability'] = model.predict_proba(sub_gdf[feature_cols])[:,1]
-    sub_gdf['is_food_desert'] = (sub_gdf["predictability"] >= 0.37).astype(int)
-     
-     #Build Map
-    m = folium.Map(location = map_center,zoom_start=10)
-    folium.Choropleth(
-        geo_data=new_gdf,
-        data=new_gdf,
-        columns=["id","is_food_desert"],
-        key_on="feature.properties.ID",
-        fill_color='YlOrRd',
-        fill_opacity=0.7,
-        line_opacity=0.2,
-        legend_name="Food Desert: 1 = Yes, 0 = No"
-    ).add_to(m)
-
-    map_path = "static/map.html"
-    m.save(map_path)
-
-    return jsonify({"map_url": f"/map"})
-
-@app.route("/map")
-def map():
-    return send_file("static/map.html")
-
-if __name__ == "__main__":
-    app.run(debug=True)
+        
