@@ -54,7 +54,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-4. Access the platform: Navigate to http://127.0.0.1:5000 in your web browser
+### 4. Access the platform: Navigate to http://127.0.0.1:5000 in your web browser
 
 # Impact & Social Significance
 Food-Access-AI transforms  census data into a  tool for social change, providing an accurate roadmap for addressing systemic food shortages. By identifying high-priority censuses through real-time assessment, the platform allows policymakers to move from reactive aid to proactive intervention—enabling the strategic placement of economic grants, mobile markets, and public transit routes. This data-driven approach ensures that limited resources are directed toward communities with the most necessary socio-economic need, effectively bridging the gap between macro-economic reporting and the "last mile" of local food access.
