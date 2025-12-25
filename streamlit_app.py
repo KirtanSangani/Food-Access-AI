@@ -177,8 +177,8 @@ def load_model():
         return None
 
 
-@st.cache_data
-def load_data():
+@st.cache_data(show_spinner=False)
+def load_data(_cache_version=2):
     """Load and prepare census tract data"""
     try:
         # Load CSV data
@@ -372,9 +372,12 @@ def main():
     st.markdown('<p class="sub-header">Interactive visualization of food access across US Census Tracts</p>', unsafe_allow_html=True)
     
     # Load data and model
+    # Cache version - increment to force data reload
+    CACHE_VERSION = 2
+    
     with st.spinner("Loading data..."):
         model = load_model()
-        gdf, df = load_data()
+        gdf, df = load_data(_cache_version=CACHE_VERSION)
     
     if gdf is None or df is None:
         st.error("Failed to load data. Please check that the data files exist in the Data folder.")
@@ -383,6 +386,11 @@ def main():
     # Make predictions
     with st.spinner("Making predictions..."):
         gdf = make_predictions(gdf, model)
+    
+    # Clear cache button
+    if st.sidebar.button("🔄 Refresh Data"):
+        st.cache_data.clear()
+        st.rerun()
     
     # Sidebar filters
     st.sidebar.markdown("### Filter Options")
