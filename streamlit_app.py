@@ -182,7 +182,7 @@ def load_data():
     """Load and prepare census tract data"""
     try:
         # Load CSV data
-        df = pd.read_csv(r"Data/FoodAccessResearchAtlasData2019.xlsx - Food Access Research Atlas - for model.csvFoodAccessResearchAtlasData.csv")
+        df = pd.read_csv(r"Data/FoodAccessResearchAtlasData2019.xlsx - Food Access Research Atlas - for model.csv")
         
         # Load shapefile (using 2019 shapefile to match 2019 CSV data)
         gdf = gpd.read_file(r"Data/cb_2019_us_tract_500k.zip")
