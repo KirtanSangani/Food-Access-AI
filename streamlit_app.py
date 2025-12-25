@@ -182,10 +182,10 @@ def load_data():
     """Load and prepare census tract data"""
     try:
         # Load CSV data
-        df = pd.read_csv(r"Data/FoodAccessResearchAtlasData2019.xlsx - Food Access Research Atlas - for model.csv")
+        df = pd.read_csv(r"Data/FoodAccessResearchAtlasData.csv")
         
         # Load shapefile (using 2019 shapefile to match 2019 CSV data)
-        gdf = gpd.read_file(r"Data/cb_2019_us_tract_500k.zip")
+        gdf = gpd.read_file(r"Data/cb_2024_us_tract_500k.zip")
         
         # Convert IDs to string and pad with leading zeros to match GEOID format (11 characters)
         # CSV IDs are stored as integers which strips leading zeros (e.g., Alabama 01001020100 -> 1001020100)
